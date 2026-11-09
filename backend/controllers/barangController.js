@@ -1,4 +1,3 @@
-
 import * as barangModel from '../models/barangModel.js'
 
 // GET /api/barang
