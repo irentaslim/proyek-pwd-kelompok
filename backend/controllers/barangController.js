@@ -58,17 +58,17 @@ export const getOne = async (req, res) => {
 // POST /api/barang
 export const create = async (req, res) => {
     try {
-        const { kode_barang, nama_barang, harga, stok } = req.body || {}
+        const { sku, nama_produk, harga, stok } = req.body || {}
 
         if (
-            !kode_barang ||
-            !nama_barang ||
+            !sku ||
+            !nama_produk ||
             harga == null ||
             stok == null
         ) {
             return res.status(400).json({
                 success: false,
-                message: 'Kode barang, nama barang, harga, dan stok wajib diisi'
+                message: 'SKU, nama produk, harga, dan stok wajib diisi'
             })
         }
 
