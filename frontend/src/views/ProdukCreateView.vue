@@ -1,0 +1,49 @@
+<script setup>
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import produkService from "../services/produkService.js";
+import ProdukForm from "../components/ProdukForm.vue";
+
+const router = useRouter();
+const form = ref({
+  sku: "",
+  nama_produk: "",
+  harga: 0,
+  stok: 1,
+  deskripsi: "",
+});
+const loading = ref(false);
+
+const submit = async () => {
+  loading.value = true;
+  try {
+    await produkService.create(form.value);
+    router.push({ name: "produk-list" });
+  } catch (e) {
+    alert(
+      "Gagal menyimpan produk: " + (e.response?.data?.message || e.message),
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+</script>
+
+<template>
+  <div class="max-w-3xl mx-auto p-4 sm:p-6">
+    <div class="mb-6">
+      <RouterLink
+        to="/"
+        class="text-indigo-600 hover:underline text-sm font-medium"
+      >
+        &larr; Kembali ke Katalog Produk
+      </RouterLink>
+      <h1 class="text-2xl font-bold text-gray-800 mt-2">Tambah Produk Baru</h1>
+      <p class="text-sm text-gray-500">
+        Masukkan data detail SKU, harga satuan, dan kuantitas stok barang.
+      </p>
+    </div>
+
+    <ProdukForm v-model="form" :loading="loading" @submit="submit" />
+  </div>
+</template>

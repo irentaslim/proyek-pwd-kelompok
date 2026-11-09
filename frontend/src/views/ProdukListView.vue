@@ -1,8 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import bukuService from "../services/bukuService.js";
+import produkService from "../services/produkService.js";
 
-const buku = ref([]);
+const produk = ref([]);
 const loading = ref(true);
 const error = ref("");
 const searchQuery = ref("");
@@ -11,8 +11,8 @@ const fetchData = async () => {
   loading.value = true;
   error.value = "";
   try {
-    const res = await bukuService.getAll();
-    buku.value = res.data.data;
+    const res = await produkService.getAll();
+    produk.value = res.data.data || res.data;
   } catch (e) {
     error.value =
       e.response?.data?.message ||
@@ -22,32 +22,45 @@ const fetchData = async () => {
   }
 };
 
-const hapus = async (id, judul) => {
-  if (!confirm(`Yakin ingin menghapus buku "${judul}"?`)) return;
+const hapus = async (id, nama) => {
+  if (!confirm(`Yakin ingin menghapus produk "${nama}"?`)) return;
   try {
-    await bukuService.remove(id);
+    await produkService.remove(id);
     fetchData();
   } catch (e) {
-    alert("Gagal menghapus buku: " + (e.response?.data?.message || e.message));
+    alert(
+      "Gagal menghapus produk: " + (e.response?.data?.message || e.message),
+    );
   }
 };
 
-// Fitur pencarian berdasarkan judul, pengarang, penerbit, atau ISBN
-const filteredBuku = computed(() => {
-  if (!searchQuery.value.trim()) return buku.value;
+const formatRupiah = (angka) => {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(Number(angka) || 0);
+};
+
+const filteredProduk = computed(() => {
+  if (!searchQuery.value.trim()) return produk.value;
   const q = searchQuery.value.toLowerCase();
-  return buku.value.filter(
-    (b) =>
-      b.judul?.toLowerCase().includes(q) ||
-      b.pengarang?.toLowerCase().includes(q) ||
-      b.penerbit?.toLowerCase().includes(q) ||
-      b.isbn?.toLowerCase().includes(q),
+  return produk.value.filter(
+    (p) =>
+      p.nama_produk?.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q) ||
+      p.deskripsi?.toLowerCase().includes(q),
   );
 });
 
-// Hitung total stok keseluruhan buku
 const totalStok = computed(() => {
-  return buku.value.reduce((acc, item) => acc + (Number(item.stok) || 0), 0);
+  return produk.value.reduce((acc, item) => acc + (Number(item.stok) || 0), 0);
+});
+
+const totalNilaiInventaris = computed(() => {
+  return produk.value.reduce((acc, item) => {
+    return acc + (Number(item.harga) || 0) * (Number(item.stok) || 0);
+  }, 0);
 });
 
 onMounted(fetchData);
@@ -55,40 +68,38 @@ onMounted(fetchData);
 
 <template>
   <div class="max-w-6xl mx-auto p-4 sm:p-6">
-    <!-- Header & Tombol Tambah -->
+    <!-- Header -->
     <div
       class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6"
     >
       <div>
         <h1 class="text-2xl font-bold text-gray-800">
-          Katalog Buku Perpustakaan
+          Manajemen Penjualan Produk
         </h1>
         <p class="text-sm text-gray-500">
-          Kelola data koleksi buku, tahun terbit, dan ketersediaan stok
+          Kelola inventaris barang, penyesuaian harga jual, dan stok produk
         </p>
       </div>
       <RouterLink
-        to="/buku/create"
-        class="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
+        to="/produk/create"
+        class="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2.5 rounded-lg shadow-sm transition"
       >
-        + Tambah Buku
+        + Tambah Produk
       </RouterLink>
     </div>
 
-    <!-- Ringkasan Dashboard & Pencarian -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <!-- Ringkasan Metrik & Filter -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <div
         class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
       >
         <div>
-          <p class="text-xs font-semibold text-gray-500 uppercase">
-            Total Judul Buku
-          </p>
-          <p class="text-2xl font-bold text-gray-800">{{ buku.length }}</p>
+          <p class="text-xs font-semibold text-gray-500 uppercase">Total SKU</p>
+          <p class="text-2xl font-bold text-gray-800">{{ produk.length }}</p>
         </div>
         <span
-          class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full"
-          >Koleksi</span
+          class="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full"
+          >Item</span
         >
       </div>
 
@@ -97,25 +108,37 @@ onMounted(fetchData);
       >
         <div>
           <p class="text-xs font-semibold text-gray-500 uppercase">
-            Total Eksemplar / Stok
+            Total Unit Stok
           </p>
           <p class="text-2xl font-bold text-emerald-600">{{ totalStok }}</p>
         </div>
         <span
-          class="bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full"
-          >Eksemplar</span
+          class="bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full"
+          >Unit</span
         >
       </div>
 
-      <!-- Kotak Pencarian -->
+      <div
+        class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between"
+      >
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase">
+            Nilai Aset Stok
+          </p>
+          <p class="text-base font-bold text-indigo-600 truncate">
+            {{ formatRupiah(totalNilaiInventaris) }}
+          </p>
+        </div>
+      </div>
+
       <div
         class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center"
       >
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Cari judul, ISBN, pengarang..."
-          class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+          placeholder="Cari SKU, nama produk, spesifikasi..."
+          class="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
         />
       </div>
     </div>
@@ -125,7 +148,7 @@ onMounted(fetchData);
       v-if="loading"
       class="bg-white shadow-sm rounded-xl p-12 text-center text-gray-500"
     >
-      Memuat data katalog buku...
+      Memuat data katalog produk...
     </div>
 
     <!-- State Error -->
@@ -144,13 +167,13 @@ onMounted(fetchData);
 
     <!-- State Kosong -->
     <div
-      v-else-if="filteredBuku.length === 0"
+      v-else-if="filteredProduk.length === 0"
       class="bg-white shadow-sm rounded-xl p-12 text-center text-gray-500"
     >
-      Tidak ada data buku yang ditemukan.
+      Tidak ada data produk yang ditemukan.
     </div>
 
-    <!-- Tabel Data Buku (Responsif) -->
+    <!-- Tabel Produk -->
     <div
       v-else
       class="bg-white shadow-md rounded-xl overflow-hidden border border-gray-100"
@@ -162,27 +185,22 @@ onMounted(fetchData);
               <th
                 class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                ISBN
+                SKU
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Judul Buku
+                Nama Produk
               </th>
               <th
                 class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Pengarang
+                Deskripsi
               </th>
               <th
-                class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider"
               >
-                Penerbit
-              </th>
-              <th
-                class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider"
-              >
-                Tahun
+                Harga
               </th>
               <th
                 class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider"
@@ -198,56 +216,51 @@ onMounted(fetchData);
           </thead>
           <tbody class="divide-y divide-gray-100">
             <tr
-              v-for="b in filteredBuku"
-              :key="b.id"
+              v-for="p in filteredProduk"
+              :key="p.id"
               class="hover:bg-gray-50 transition"
             >
               <td
-                class="px-4 py-3 text-sm font-mono text-gray-700 whitespace-nowrap"
+                class="px-4 py-3 text-sm font-mono font-medium text-indigo-600 whitespace-nowrap"
               >
-                {{ b.isbn }}
+                {{ p.sku }}
               </td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                {{ b.judul }}
+                {{ p.nama_produk }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-700">
-                {{ b.pengarang }}
+              <td class="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
+                {{ p.deskripsi || "-" }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-600">
-                <span
-                  class="inline-block bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-0.5 rounded-full"
-                >
-                  {{ b.penerbit || "-" }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-sm text-center text-gray-700">
-                {{ b.tahun }}
+              <td
+                class="px-4 py-3 text-sm text-right font-semibold text-gray-800 whitespace-nowrap"
+              >
+                {{ formatRupiah(p.harga) }}
               </td>
               <td class="px-4 py-3 text-sm text-center">
                 <span
                   :class="
-                    b.stok > 5
+                    p.stok > 10
                       ? 'bg-green-100 text-green-700'
-                      : b.stok > 0
+                      : p.stok > 0
                         ? 'bg-amber-100 text-amber-700'
                         : 'bg-red-100 text-red-700'
                   "
                   class="inline-block font-semibold text-xs px-2.5 py-1 rounded-full"
                 >
-                  {{ b.stok }}
+                  {{ p.stok }}
                 </span>
               </td>
               <td
                 class="px-4 py-3 text-sm text-center whitespace-nowrap space-x-2"
               >
                 <RouterLink
-                  :to="`/buku/edit/${b.id}`"
+                  :to="`/produk/edit/${p.id}`"
                   class="inline-block bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition"
                 >
                   Edit
                 </RouterLink>
                 <button
-                  @click="hapus(b.id, b.judul)"
+                  @click="hapus(p.id, p.nama_produk)"
                   class="bg-red-500 hover:bg-red-600 text-white text-xs font-medium px-3 py-1.5 rounded-md transition"
                 >
                   Hapus

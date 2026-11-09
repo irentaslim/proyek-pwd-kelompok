@@ -5,18 +5,18 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'buku-list',
-      component: () => import('../views/BukuListView.vue')
+      name: 'produk-list',
+      component: () => import('../views/ProdukListView.vue')
     },
     {
-      path: '/buku/create',
-      name: 'buku-create',
-      component: () => import('../views/BukuCreateView.vue')
+      path: '/produk/create',
+      name: 'produk-create',
+      component: () => import('../views/ProdukCreateView.vue')
     },
     {
-      path: '/buku/edit/:id',
-      name: 'buku-edit',
-      component: () => import('../views/BukuEditView.vue')
+      path: '/produk/edit/:id',
+      name: 'produk-edit',
+      component: () => import('../views/ProdukEditView.vue')
     }
   ]
 })
