@@ -7,7 +7,7 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
 });
 
-const emit = defineEmits([" update:modelValue", "submit"]);
+const emit = defineEmits(["update:modelValue", "submit"]);
 
 const form = computed({
   get: () => props.modelValue,
